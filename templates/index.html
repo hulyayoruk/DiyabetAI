@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>DiyabetAI Panel</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-content">
+      <h1 class="logo">🩺 DiyabetAI</h1>
+      <div class="user-info">
+        <p>Hoş geldin, <strong>{{ adsoyad }}</strong> 👋</p>
+        <div class="actions">
+          <a href="/profil" class="btn-light">Profilim</a>
+          <a href="/cikis" class="btn-red">Çıkış Yap</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <!-- 1. SATIR: SOL BİLGİLER — ORTA GRAFİK — SAĞ AI -->
+    <section class="top-row">
+      <!-- Sol kolon (3 kart üst üste) -->
+      <div class="top-left-column">
+        <div class="card user-card">
+          <h3>👤 Kullanıcı Bilgileri</h3>
+
+          <p><strong>Ad Soyad:</strong> {{ adsoyad }}</p>
+          <p><strong>Durum:</strong> {{ durum or "Belirtilmemiş" }}</p>
+
+          <p><strong>Tanı Tarihi:</strong>
+            {% if tani_tarihi %}
+              {{ tani_tarihi.strftime("%d.%m.%Y") if tani_tarihi.__class__.__name__ == "date" else tani_tarihi }}
+            {% else %}
+              -
+            {% endif %}
+          </p>
+
+          <p><strong>Yaş:</strong> {{ yas or "Belirtilmemiş" }}</p>
+          <p><strong>Kilo:</strong> {{ kilo or "Belirtilmemiş" }} kg</p>
+          <p><strong>Boy:</strong> {{ boy or "Belirtilmemiş" }} cm</p>
+        </div>
+
+        <div class="card">
+          <h3>💊 İlaç Bilgileri</h3>
+          <p><strong>İlaç Bilgileri:</strong> {{ ilac_bilgileri or "Belirtilmemiş" }}</p>
+          <p>{{ ilac_bilgisi or "Profil sayfasından ilaç bilgilerini güncelleyebilirsin." }}</p>
+        </div>
+
+        <div class="card summary-card">
+          <h3>📊 Son 24 Saat Özeti</h3>
+          <p>Toplam karbonhidrat: <strong id="sum_carbs">-- g</strong></p>
+          <p>Egzersiz süresi: <strong id="sum_ex">-- dk</strong></p>
+          <p>Ortalama şiddet: <strong id="avg_int">-- / 5</strong></p>
+          <p>Adım sayısı: <strong id="sum_steps">--</strong></p>
+          <p>Uyku süresi: <strong id="sum_sleep">-- dk</strong></p>
+        </div>
+      </div>
+
+      <!-- Orta: Kan şekeri izleme grafiği -->
+      <div class="top-center-column">
+        <div class="card chart-card">
+          <div class="chart-card-header">
+            <h3>📈 Kan Şekeri İzleme</h3>
+            <span id="glucose-trend-pill" class="trend-pill"></span>
+          </div>
+
+          <div class="chart-wrapper">
+            <canvas id="glucoseChart"></canvas>
+          </div>
+
+          <div class="stats">
+            <div>
+              <p>Anlık</p>
+              <h4 id="current">
+                {% if current_glucose is not none %}
+                  {{ current_glucose }} mg/dL
+                {% else %}
+                  -- mg/dL
+                {% endif %}
+              </h4>
+            </div>
+            <div>
+              <p>Ortalama</p>
+              <h4 id="average">
+                {% if average_glucose is not none %}
+                  {{ average_glucose }} mg/dL
+                {% else %}
+                  -- mg/dL
+                {% endif %}
+              </h4>
+            </div>
+            <div>
+              <p>HbA1c</p>
+              {% if hba1c_est is not none %}
+                <h4 id="hba1c-value">{{ "%.1f"|format(hba1c_est) }}%</h4>
+              {% else %}
+                <h4 id="hba1c-value">--%</h4>
+              {% endif %}
+            </div>
+          </div>
+
+          <p class="hba1c-note">
+            HbA1c değeri, ADAG çalışmasındaki formüle göre
+            son ölçümlerin <strong>ortalama kan şekeri</strong> üzerinden tahmini
+            olarak hesaplanır; <strong>klinik tanı yerine geçmez.</strong>
+          </p>
+        </div>
+      </div>
+
+      <!-- Sağ: AI Önerileri -->
+      <div class="top-right-column">
+        <div class="card ai-card">
+          <h3>🤖 AI Önerileri</h3>
+
+          <div class="ai-main red">
+            <h4>Risk Analizi</h4>
+
+            <p>
+              Anlık kan şekeri:
+              <strong>
+                {% if current_glucose is not none %}
+                  {{ current_glucose }} mg/dL
+                {% else %}
+                  -- mg/dL
+                {% endif %}
+              </strong>
+            </p>
+
+            {% if predicted_glucose is not none %}
+              <p>30 dk sonrası tahmini:
+                <strong>{{ predicted_glucose }} mg/dL</strong>
+              </p>
+            {% else %}
+              <p>30 dk sonrası tahmini:
+                <strong>-- mg/dL</strong>
+              </p>
+            {% endif %}
+
+            <p id="ai-risk-label"><strong>{{ risk }}</strong></p>
+
+            <p id="ai-type-note" class="ai-type-note"></p>
+            <p id="ai-risk-desc" class="ai-risk-desc"></p>
+
+            <div id="ai-simulations" class="ai-simulations"></div>
+
+            <p class="disclaimer">
+              Bu değerlendirme bir tıbbi tanı değildir. İnsülin/ilaç dozunu
+              değiştirmeden önce mutlaka doktoruna danış.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. SATIR: 4 FORM KARTI (tam genişlik) -->
+    <section class="form-row">
+      <div class="card form-card">
+        <h3>🩸 Ölçüm Girişi</h3>
+        <form method="POST" action="/olcum_ekle">
+          <label>Kan Şekeri (mg/dL)</label>
+          <input type="number" name="glikoz" required>
+
+          <label>Ölçüm Tarihi &amp; Saati</label>
+          <input type="datetime-local" name="olcum_zamani">
+
+          <label>İlaç</label>
+          <input type="text" name="ilac" placeholder="Kullanılan ilaç">
+
+          <label>Not</label>
+          <textarea name="notlar" placeholder="Ek bilgi"></textarea>
+
+          <button type="submit" class="btn-blue full-width">Kaydet</button>
+        </form>
+      </div>
+
+      <div class="card form-card">
+        <h3>🍽️ Öğün Bilgisi</h3>
+        <form method="POST" action="/ogun_ekle">
+          <label>Öğün Zamanı</label>
+          <input type="datetime-local" name="ogun_zaman">
+
+          <label>Öğün Türü</label>
+          <select name="ogun_turu">
+            <option value="">Seçiniz</option>
+            <option value="Kahvaltı">Kahvaltı</option>
+            <option value="Öğle">Öğle</option>
+            <option value="Akşam">Akşam</option>
+            <option value="Ara Öğün">Ara Öğün</option>
+          </select>
+
+          <label>Karbonhidrat (g)</label>
+          <input type="number" name="karbonhidrat" min="0" step="1">
+
+          <label>Not</label>
+          <textarea name="ogun_not" placeholder="Örn: Pilav, ekmek, meyve..."></textarea>
+
+          <button type="submit" class="btn-blue full-width">Kaydet</button>
+        </form>
+      </div>
+
+      <div class="card form-card">
+        <h3>🏃 Egzersiz Bilgisi</h3>
+        <form method="POST" action="/egzersiz_ekle">
+          <label>Egzersiz Zamanı</label>
+          <input type="datetime-local" name="egzersiz_zaman">
+
+          <label>Egzersiz Süresi (dk)</label>
+          <input type="number" name="egzersiz_suresi" min="0" step="1">
+
+          <label>Egzersiz Şiddeti</label>
+          <select name="egzersiz_seviyesi">
+            <option value="">Seçiniz</option>
+            <option value="1">Çok hafif</option>
+            <option value="2">Hafif</option>
+            <option value="3">Orta</option>
+            <option value="4">Yoğun</option>
+            <option value="5">Çok yoğun</option>
+          </select>
+
+          <label>Adım Sayısı</label>
+          <input type="number" name="adim_sayisi" min="0" step="1">
+
+          <label>Not</label>
+          <textarea name="egzersiz_not" placeholder="Örn: 20 dk yürüyüş, 10 dk koşu..."></textarea>
+
+          <button type="submit" class="btn-blue full-width">Kaydet</button>
+        </form>
+      </div>
+
+      <div class="card form-card">
+        <h3>😴 Uyku Bilgisi</h3>
+        <form method="POST" action="/uyku_ekle">
+          <label>Uyku Başlangıç</label>
+          <input type="datetime-local" name="uyku_baslangic">
+
+          <label>Uyku Bitiş</label>
+          <input type="datetime-local" name="uyku_bitis">
+
+          <label>Not</label>
+          <textarea name="uyku_not" placeholder="Örn: gece uyanma sayısı..."></textarea>
+
+          <button type="submit" class="btn-blue full-width">Kaydet</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 3. SATIR: ÖLÇÜM RAPORU (sol geniş) + DÖNEMSEL GLİKOZ (sağ) -->
+    <section class="bottom-row">
+      <!-- Ölçüm Raporu -->
+      <div class="card measurement-card">
+        <div class="measurement-header">
+          <h3>📋 Ölçüm Raporu</h3>
+          <div class="measurement-controls">
+            <select id="measurement-range" class="period-select">
+              <option value="15">Son 15 gün</option>
+              <option value="30" selected>Son 30 gün</option>
+              <option value="90">Son 90 gün</option>
+            </select>
+
+            <div class="measurement-buttons">
+              <button type="button" class="btn-outline" id="btn-export-excel">
+                Excel indir
+              </button>
+              <button type="button" class="btn-outline" id="btn-export-pdf">
+                PDF indir
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="measurement-table-wrapper">
+          <table class="measurement-table">
+            <thead>
+              <tr>
+                <th>Tarih / Saat</th>
+                <th>Glikoz (mg/dL)</th>
+                <th>İlaç</th>
+                <th>Not</th>
+              </tr>
+            </thead>
+            <tbody id="measurement-tbody">
+              <!-- JS ile dolduruluyor -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Dönemsel Glikoz Özeti -->
+      <div class="card period-card">
+        <div class="period-card-header">
+          <h3>🧠 Dönemsel Glikoz Özeti</h3>
+          <select id="period-select" class="period-select">
+            <option value="7">Son 7 gün</option>
+            <option value="15">Son 15 gün</option>
+            <option value="30">Son 30 gün</option>
+            <option value="90">Son 90 gün</option>
+          </select>
+        </div>
+
+        <p class="period-main-line">
+          Ortalama kan şekeri:
+          <strong id="pr_avg_glucose">--</strong>
+        </p>
+
+        <div class="period-chart-wrapper">
+          <canvas id="period-chart"></canvas>
+        </div>
+
+        <div class="period-grid">
+          <div>
+            <p>Aralıkta (70–180)</p>
+            <strong id="pr_inrange">--</strong>
+          </div>
+          <div>
+            <p>Hipoglisemi (&lt; 70)</p>
+            <strong id="pr_hypo">--</strong>
+          </div>
+          <div>
+            <p>Hiperglisemi (&gt; 180)</p>
+            <strong id="pr_hyper">--</strong>
+          </div>
+        </div>
+
+        <p id="pr_delta" class="period-delta-text"></p>
+      </div>
+    </section>
+  </main>
+
+  <!-- JS -->
+  <script src="{{ url_for('static', filename='js/chart.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/activity_summary.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/ai_suggestions.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/period_report.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/measurement_report.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>DiyabetAI - Giriş Yap</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-card-title">
+        <span>🔐</span>
+        <span>Giriş Yap</span>
+      </div>
+      <p class="auth-card-subtitle">
+        DiyabetAI paneline erişmek için hesabınla giriş yap.
+      </p>
+
+      {% if hata %}
+        <div class="auth-message error">
+          {{ hata }}
+        </div>
+      {% endif %}
+
+      <form action="/giris" method="POST" class="auth-form">
+        <div class="auth-field">
+          <label for="email">E-posta</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+
+        <div class="auth-field">
+          <label for="sifre">Şifre</label>
+          <input type="password" id="sifre" name="sifre" required>
+        </div>
+
+        <button type="submit" class="auth-primary-btn">
+          Giriş Yap
+        </button>
+      </form>
+
+      <p class="auth-footer-text">
+        Şifreni mi unuttun?
+        <a href="/sifremi_unuttum">Şifre sıfırlama iste</a>
+      </p>
+      <p class="auth-footer-text">
+        Henüz hesabın yok mu?
+        <a href="/kayit">Kayıt ol</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>

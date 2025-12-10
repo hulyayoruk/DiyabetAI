@@ -1,0 +1,15 @@
+[
+  "glucose",
+  "carbs_win_1",
+  "carbs_win_2",
+  "carbs_win_3",
+  "bolus",
+  "bolus_corr",
+  "basal",
+  "ex_minutes",
+  "ex_intensity",
+  "steps",
+  "is_sleep",
+  "time_sin",
+  "time_cos"
+]

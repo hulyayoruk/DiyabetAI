@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>E-posta Gönderildi - DiyabetAI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  <!-- 🔁 5 saniye sonra otomatik yönlendirme -->
+  <meta http-equiv="refresh" content="5;url=/giris">
+
+  <style>
+    /* Spinner animasyonu */
+    .spinner {
+      margin: 30px auto;
+      width: 50px;
+      height: 50px;
+      border: 6px solid #ddd;
+      border-top-color: #0078d7;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .redirect-text {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .login-container {
+      width: 380px;
+      margin: 80px auto;
+      padding: 25px;
+      text-align: center;
+      background: #fafafa;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      color: #0078d7;
+    }
+
+    a {
+      color: #0078d7;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2>📨 E-posta Gönderildi</h2>
+    <p>
+      Eğer girdiğiniz e-posta sistemde kayıtlıysa, şifre sıfırlama bağlantısı gönderilmiştir.
+    </p>
+    <p>
+      Lütfen <strong>gelen kutunuzu</strong> ve <strong>spam klasörünü</strong> kontrol edin.
+    </p>
+
+    <div class="spinner"></div>
+
+    <p class="redirect-text">5 saniye içinde giriş sayfasına yönlendiriliyorsunuz...</p>
+    <p><a href="/giris">Hemen giriş sayfasına git</a></p>
+  </div>
+</body>
+</html>

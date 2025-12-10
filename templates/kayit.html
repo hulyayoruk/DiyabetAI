@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>DiyabetAI - Kayıt Ol</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card auth-card--wide">
+      <div class="auth-card-title">
+        <span>🩺</span>
+        <span>Yeni Hesap Oluştur</span>
+      </div>
+      <p class="auth-card-subtitle">
+        DiyabetAI kullanmaya başlamak için temel bilgilerini doldur.
+      </p>
+
+      {% if hata %}
+        <div class="auth-message error">
+          {{ hata }}
+        </div>
+      {% endif %}
+
+      <form method="POST" action="/kayit" class="auth-form auth-form--grid2">
+        <div class="auth-field">
+          <label>Ad Soyad</label>
+          <input type="text" name="adsoyad" required>
+        </div>
+
+        <div class="auth-field">
+          <label>E-posta</label>
+          <input type="email" name="email" required>
+        </div>
+
+        <div class="auth-field">
+          <label>Şifre</label>
+          <input type="password" name="sifre" required>
+        </div>
+
+        <div class="auth-field">
+          <label>Şifre (Tekrar)</label>
+          <input type="password" name="sifre_tekrar" required>
+        </div>
+
+        <div class="auth-field">
+          <label>Yaş</label>
+          <input type="number" name="yas" min="0">
+        </div>
+
+        <div class="auth-field">
+          <label>Boy (cm)</label>
+          <input type="number" name="boy" step="0.1" min="0">
+        </div>
+
+        <div class="auth-field">
+          <label>Kilo (kg)</label>
+          <input type="number" name="kilo" step="0.1" min="0">
+        </div>
+
+        <div class="auth-field">
+          <label>Tanı Tarihi</label>
+          <input type="date" name="tanitarihi">
+        </div>
+
+        <div class="auth-field">
+          <label>Durum</label>
+          <select name="durum">
+            <option value="">Seçiniz</option>
+            <option value="Tip-1 Diyabet">Tip-1 Diyabet</option>
+            <option value="Tip-2 Diyabet">Tip-2 Diyabet</option>
+            <option value="Prediyabet">Prediyabet</option>
+            <option value="Diğer">Diğer</option>
+          </select>
+        </div>
+
+        <div class="auth-field" style="grid-column: 1 / -1;">
+          <button type="submit" class="auth-primary-btn">
+            Hesap Oluştur
+          </button>
+        </div>
+      </form>
+
+      <p class="auth-footer-text">
+        Zaten bir hesabın var mı?
+        <a href="/giris">Giriş yap</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>

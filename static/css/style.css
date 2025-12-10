@@ -1,0 +1,992 @@
+:root {
+  --bg-page: #f5f7ff;
+  --card-bg: #ffffff;
+  --border-radius-card: 18px;
+  --shadow-card: 0 18px 40px rgba(15, 23, 42, 0.12);
+  --primary: #2563eb;
+  --primary-soft: #e0edff;
+  --danger-soft: #ffe4e6;
+  --danger-strong: #fb7185;
+  --text-main: #111827;
+  --text-muted: #6b7280;
+  --text-soft: #9ca3af;
+  --border-soft: #e5e7eb;
+  --period-soft: #f3f4ff;
+  --table-header: #f9fafb;
+  --table-border: #e5e7eb;
+}
+
+/* ----------------- GLOBAL ----------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg-page);
+  color: var(--text-main);
+}
+
+/* ----------------- HEADER ----------------- */
+
+.header {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.95rem;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-light,
+.btn-red,
+.btn-blue,
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.05s ease, box-shadow 0.1s ease, background 0.1s ease,
+    color 0.1s ease;
+}
+
+.btn-light {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.15);
+}
+
+.btn-light:hover {
+  transform: translateY(-1px);
+}
+
+.btn-red {
+  background: #f97373;
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(248, 113, 113, 0.35);
+}
+
+.btn-red:hover {
+  background: #ef4444;
+  transform: translateY(-1px);
+}
+
+.btn-blue {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
+}
+
+.btn-blue:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  border-radius: 12px;
+  border: 1px solid var(--primary);
+  background: #ffffff;
+  color: var(--primary);
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.btn-outline:hover {
+  background: var(--primary-soft);
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* ----------------- LAYOUT ----------------- */
+
+.dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 24px 40px;
+}
+
+/* Top row: left (280px) - center - right */
+.top-row {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1.7fr) minmax(0, 1.15fr);
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.top-left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.top-center-column,
+.top-right-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Second row: 4 forms */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+/* Bottom row: measurement (wide) + period summary */
+.bottom-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.2fr);
+  gap: 24px;
+}
+
+/* ----------------- CARD BASE ----------------- */
+
+.card {
+  background: var(--card-bg);
+  border-radius: var(--border-radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px 20px;
+
+  /* HOVER ANİMASYONU İÇİN */
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+/* Hover efekti – tüm kartlar için */
+.card:hover {
+  box-shadow: 0 22px 50px rgba(15, 23, 42, 0.20);
+  transform: translateY(-2px);
+}
+
+
+.card h3 {
+  margin: 0 0 10px;
+  font-size: 1.02rem;
+}
+
+/* ----------------- SOL KARTLAR ----------------- */
+
+.user-card p {
+  margin: 4px 0;
+  font-size: 0.9rem;
+}
+
+.summary-card p {
+  margin: 4px 0;
+  font-size: 0.9rem;
+}
+
+/* ----------------- KAN ŞEKERİ KARTI ----------------- */
+
+.chart-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.chart-card-header h3 {
+  margin: 0;
+}
+
+.trend-pill {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  white-space: nowrap;
+}
+
+/* Grafik alanını sabit tutalım ki kart boyu oynamasın */
+.chart-wrapper {
+  width: 100%;
+  height: 260px;
+}
+
+.chart-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Alt metrikler */
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 12px;
+  margin-bottom: 4px;
+  font-size: 0.88rem;
+}
+
+.stats p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.stats h4 {
+  margin: 2px 0 0;
+  font-size: 0.95rem;
+}
+
+/* HbA1c notu */
+
+.hba1c-note {
+  margin-top: 8px;
+  margin-bottom: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* ----------------- AI KARTI ----------------- */
+
+.ai-card h3 {
+  margin-bottom: 12px;
+}
+
+.ai-main {
+  background: var(--danger-soft);
+  border-radius: 16px;
+  padding: 16px 18px 14px;
+  border-left: 6px solid var(--danger-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-main h4 {
+  margin: 0 0 6px;
+  font-size: 0.96rem;
+}
+
+.ai-main p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.ai-type-note {
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+.ai-risk-desc {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+
+/* Simülasyon kartları */
+.ai-simulations {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-sim-card {
+  background: #fff7ed;
+  border-radius: 12px;
+  padding: 9px 10px;
+  border: 1px dashed #fdba74;
+  font-size: 0.83rem;
+}
+
+.disclaimer {
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* ----------------- FORM KARTLARI ----------------- */
+
+.form-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.form-card label {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.form-card input,
+.form-card select,
+.form-card textarea {
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  padding: 7px 9px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.form-card input:focus,
+.form-card select:focus,
+.form-card textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary-soft);
+}
+
+.form-card textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+/* ----------------- ÖLÇÜM RAPORU ----------------- */
+
+.measurement-card {
+  min-height: 340px; /* zıplamayı azaltmak için sabit alt sınır */
+  display: flex;
+  flex-direction: column;
+}
+
+.measurement-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.measurement-header h3 {
+  margin: 0;
+}
+
+.measurement-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.period-select {
+  border-radius: 999px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-soft);
+  background: #ffffff;
+  font-size: 0.85rem;
+}
+
+.measurement-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+/* Tablo yüksekliği sabit; satır sayısı azalsa da kart boyu oynamasın */
+.measurement-table-wrapper {
+  margin-top: 10px;
+  min-height: 230px;
+  max-height: 230px;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid var(--table-border);
+}
+
+.measurement-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.measurement-table thead {
+  background: var(--table-header);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.measurement-table th,
+.measurement-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--table-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* ----------------- DÖNEMSEL GLİKOZ ----------------- */
+
+.period-card {
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+}
+
+.period-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.period-main-line {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.period-chart-wrapper {
+  margin: 10px 0;
+  flex: 1 0 auto;
+  height: 220px;
+}
+
+.period-chart-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.period-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.period-grid p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.period-grid strong {
+  display: block;
+  margin-top: 2px;
+}
+
+.period-delta-text {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ----------------- RESPONSIVE (tablet/küçük ekran) ----------------- */
+
+@media (max-width: 1100px) {
+  .top-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .form-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bottom-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 16px;
+  }
+
+  .form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+.ai-card h3 {
+  margin-bottom: 12px;
+}
+
+/* AI iç kart – eski stile yakın, daha belirgin görünüm */
+.ai-main {
+  background: linear-gradient(135deg, #ffe4e6 0%, #fff1f2 40%, #ffffff 100%);
+  border-radius: 18px;
+  padding: 16px 18px 14px;
+  border-left: 6px solid var(--danger-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 16px 36px rgba(248, 113, 113, 0.28);
+}
+
+.ai-main h4 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.ai-main p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.ai-type-note {
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+.ai-risk-desc {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+
+/* Simülasyon küçük kartları */
+.ai-simulations {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-sim-card {
+  background: #fff7ed;
+  border-radius: 12px;
+  padding: 9px 10px;
+  border: 1px dashed #fdba74;
+  font-size: 0.83rem;
+}
+/* Simülasyon kart biçimi */
+.ai-sim-card {
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(0,0,0,0.05);
+  background: #fafafa;
+  transition: box-shadow 0.15s ease;
+}
+
+/* Hover efekt */
+.ai-sim-card:hover {
+  box-shadow: 0 14px 25px rgba(0,0,0,0.12);
+}
+
+/* Renk durumları */
+.ai-risk-up { /* risk artıyorsa 🔥 */
+  background: #ffe5e5;
+  border-left: 6px solid #dc2626;
+}
+
+.ai-risk-down { /* risk azalıyorsa 🍀 */
+  background: #e7f7ed;
+  border-left: 6px solid #059669;
+}
+
+.ai-risk-same { /* değişim yok ⚪ */
+  background: #fff7e6;
+  border-left: 6px solid #d97706;
+}
+.ai-sim-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px;
+    transition: box-shadow 0.2s ease;
+}
+
+.ai-risk-up {
+    background: #ffe1e1 !important;
+    border-left: 4px solid #e60000 !important;
+}
+
+.ai-risk-down {
+    background: #e7ffe1 !important;
+    border-left: 4px solid #00a000 !important;
+}
+
+.ai-risk-same {
+    background: #fff7cd !important;
+    border-left: 4px solid #e6c200 !important;
+}
+/* Ortak kart hover (tüm .card'lar için) */
+.card {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  padding: 18px 20px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.14);
+}
+
+/* === AI Önerileri kartı === */
+
+.ai-card {
+  background: linear-gradient(145deg, #ffe9e9, #ffecec);
+  border-radius: 22px;
+  padding: 20px 22px;
+  box-shadow: 0 10px 28px rgba(248, 113, 113, 0.18);
+}
+
+.ai-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.ai-item.red {
+  background: #ffe5e5;
+  border-radius: 18px;
+  padding: 16px 18px;
+  border-left: 4px solid #f97373;
+}
+
+/* Simülasyon kartlarının container'ı */
+.ai-simulations {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+/* Tek tek simülasyon kartları (karbonhidrat / egzersiz) */
+.ai-sim-card {
+  background: #fff9e6;
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(249, 115, 22, 0.15);
+  box-shadow: 0 4px 10px rgba(248, 191, 73, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ai-sim-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(248, 191, 73, 0.32);
+}
+
+.ai-sim-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+}
+
+.ai-sim-desc {
+  font-size: 0.86rem;
+  margin-bottom: 4px;
+  color: #4b5563;
+}
+
+.ai-sim-prob {
+  font-size: 0.86rem;
+  color: #111827;
+}
+
+/* Riske göre renk varyantları */
+.ai-sim-card.ai-risk-up {
+  background: #fef2f2;
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+.ai-sim-card.ai-risk-down {
+  background: #ecfdf3;
+  border-color: rgba(34, 197, 94, 0.6);
+}
+
+.ai-sim-card.ai-risk-same {
+  background: #fffbeb;
+  border-color: rgba(234, 179, 8, 0.6);
+}
+.ai-sim-card {
+  border-radius: 12px;
+  padding: 12px;
+  background: #fffaf0;
+  border-left: 4px solid #ffbf00;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+  transition: 0.3s;
+}
+.ai-sim-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+.ai-risk-up {
+  background: #ffe5e5 !important;
+  border-left-color: #ff4d4d !important;
+}
+
+.ai-risk-down {
+  background: #e8ffe8 !important;
+  border-left-color: #28a745 !important;
+}
+
+.ai-risk-same {
+  background: #fff7d6 !important;
+  border-left-color: #ffcc00 !important;
+}
+.ai-main {
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 5px 18px rgba(0,0,0,0.06);
+  transition: 0.25s ease;
+  border-left: 6px solid transparent;
+}
+
+/* Hipoglisemi Riski */
+.risk-low {
+  background: #e6f3ff !important;
+  border-left-color: #007bff !important;
+}
+
+/* Kontrol Altında */
+.risk-normal {
+  background: #e8ffe8 !important;
+  border-left-color: #28a745 !important;
+}
+
+/* Hiperglisemi Riski */
+.risk-high {
+  background: #ffe5e5 !important;
+  border-left-color: #ff4d4d !important;
+}
+
+/* Hover Efekti */
+.ai-main:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+#ai-risk-label {
+  font-weight: 700 !important;
+  font-size: 1.05rem !important;
+  color: #000 !important;
+}
+/* ==============================
+   AUTH SAYFALARI (Giriş / Kayıt / Profil / Şifre Sıfırlama)
+   ============================== */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 72px 16px 40px;
+  background: radial-gradient(circle at top left, #e0f2fe 0, transparent 55%),
+              radial-gradient(circle at bottom right, #e9d5ff 0, transparent 55%),
+              #f3f4ff;
+}
+
+/* Kartın kendisi */
+.auth-card {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+  border: 1px solid #e5e7ff;
+  padding: 28px 32px 32px;
+  position: relative;
+}
+
+/* Profil ve kayıt sayfası için daha geniş kart */
+.auth-card.auth-card--wide {
+  max-width: 960px;
+}
+
+/* Kart başlığı */
+.auth-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.auth-card-title span {
+  font-size: 24px;
+}
+
+/* Kart alt başlığı / açıklama */
+.auth-card-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+/* Geri dön linkleri */
+.auth-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #2563eb;
+  text-decoration: none;
+  margin-bottom: 16px;
+}
+
+.auth-back-link:hover {
+  text-decoration: underline;
+}
+
+/* Form layout */
+.auth-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px 18px;
+}
+
+/* Profil / kayıt için iki kolonlu grid */
+.auth-form.auth-form--grid2 {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+/* Label + input blokları */
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.auth-field label {
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Input / select / textarea stilleri */
+.auth-card input[type="text"],
+.auth-card input[type="password"],
+.auth-card input[type="email"],
+.auth-card input[type="number"],
+.auth-card input[type="date"],
+.auth-card select,
+.auth-card textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+  background-color: #f9fafb;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+              background-color 0.15s ease;
+}
+
+.auth-card textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* Focus durumunda mavi kenarlık */
+.auth-card input:focus,
+.auth-card select:focus,
+.auth-card textarea:focus {
+  border-color: #2563eb;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Alt satırdaki küçük linkler (ör: 'Zaten hesabım var mı?') */
+.auth-footer-text {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.auth-footer-text a {
+  color: #2563eb;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.auth-footer-text a:hover {
+  text-decoration: underline;
+}
+
+/* Butonlar */
+.auth-card button,
+.auth-card .auth-primary-btn {
+  margin-top: 6px;
+  width: 100%;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  box-shadow: 0 12px 25px rgba(37, 99, 235, 0.35);
+  transition: transform 0.12s ease, box-shadow 0.12s ease,
+              filter 0.12s ease;
+}
+
+.auth-card button:hover,
+.auth-card .auth-primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 35px rgba(37, 99, 235, 0.45);
+  filter: brightness(1.03);
+}
+
+.auth-card button:active,
+.auth-card .auth-primary-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.32);
+}
+
+/* Hata / bilgi mesajları için basit stil (varsa) */
+.auth-message {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.auth-message.error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.auth-message.info {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+/* Küçük ekranlar */
+@media (max-width: 640px) {
+  .auth-card {
+    padding: 22px 18px 24px;
+    border-radius: 18px;
+  }
+
+  .auth-card-title {
+    font-size: 20px;
+  }
+}

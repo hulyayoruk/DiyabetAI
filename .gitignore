@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment & secrets
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Reports / outputs
+*.xlsx
+*.pdf
+
+# TensorFlow / cache
+checkpoint/
+*.ckpt

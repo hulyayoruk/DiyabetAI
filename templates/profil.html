@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Profil Bilgilerim - DiyabetAI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card auth-card--wide">
+      <a href="/" class="auth-back-link">← Panele dön</a>
+
+      <div class="auth-card-title">
+        <span>👤</span>
+        <span>Profil Bilgilerim</span>
+      </div>
+      <p class="auth-card-subtitle">
+        Kişisel ve tıbbi profil bilgilerini buradan güncelleyebilirsin.
+      </p>
+
+      {% if mesaj %}
+        <div class="auth-message info" style="margin-bottom:12px;">
+          {{ mesaj }}
+        </div>
+      {% endif %}
+
+      <form method="POST" class="auth-form auth-form--grid2">
+        <div class="auth-field">
+          <label>Ad Soyad</label>
+          <input type="text" name="adsoyad" value="{{ adsoyad or '' }}" required>
+        </div>
+
+        <div class="auth-field">
+          <label>Yaş</label>
+          <input type="number" name="yas" min="0" value="{{ yas or '' }}">
+        </div>
+
+        <div class="auth-field">
+          <label>Boy (cm)</label>
+          <input type="number" name="boy" step="0.1" min="0" value="{{ boy or '' }}">
+        </div>
+
+        <div class="auth-field">
+          <label>Kilo (kg)</label>
+          <input type="number" name="kilo" step="0.1" min="0" value="{{ kilo or '' }}">
+        </div>
+
+        <div class="auth-field">
+          <label>Durum</label>
+          <select name="durum">
+            <option value="">Seçiniz</option>
+            <option value="Tip-1 Diyabet" {% if durum == "Tip-1 Diyabet" %}selected{% endif %}>Tip-1 Diyabet</option>
+            <option value="Tip-2 Diyabet" {% if durum == "Tip-2 Diyabet" %}selected{% endif %}>Tip-2 Diyabet</option>
+            <option value="Prediyabet" {% if durum == "Prediyabet" %}selected{% endif %}>Prediyabet</option>
+            <option value="Diğer" {% if durum == "Diğer" %}selected{% endif %}>Diğer</option>
+          </select>
+        </div>
+
+        <div class="auth-field">
+          <label>Tanı Tarihi</label>
+          <input type="date" name="tani_tarihi" value="{{ tanitarihi }}">
+        </div>
+
+        <div class="auth-field" style="grid-column: 1 / -1;">
+          <label>İlaç Bilgileri
+            <span style="font-weight:normal;font-size:0.85rem;">(kullanım saati + ilaç adı)</span>
+          </label>
+          <textarea name="ilac_bilgileri" rows="4"
+            placeholder="Örn:&#10;- Sabah: 12U Novorapid&#10;- Akşam: 10U Levemir">{{ ilac_bilgileri or "" }}</textarea>
+        </div>
+
+        <div class="auth-field" style="grid-column: 1 / -1;">
+          <button type="submit" class="auth-primary-btn">
+            💾 Kaydet
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

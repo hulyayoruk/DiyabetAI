@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Şifremi Unuttum - DiyabetAI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card">
+      <a href="/giris" class="auth-back-link">← Giriş sayfasına dön</a>
+
+      <div class="auth-card-title">
+        <span>📧</span>
+        <span>Şifremi Unuttum</span>
+      </div>
+      <p class="auth-card-subtitle">
+        Kayıtlı e-posta adresini gir; sana şifre sıfırlama bağlantısını göstereceğiz.
+      </p>
+
+      {% if hata %}
+        <div class="auth-message error">
+          {{ hata }}
+        </div>
+      {% endif %}
+
+      <form method="POST" action="/sifremi_unuttum" class="auth-form">
+        <div class="auth-field">
+          <label>E-posta adresin</label>
+          <input type="email" name="email" required>
+        </div>
+
+        <button type="submit" class="auth-primary-btn">
+          Sıfırlama Bağlantısı Oluştur
+        </button>
+      </form>
+
+      <p class="auth-footer-text">
+        Hesabın var ve şifreni hatırladın mı?
+        <a href="/giris">Giriş yap</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>
