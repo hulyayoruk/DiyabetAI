@@ -990,3 +990,108 @@ body {
     font-size: 20px;
   }
 }
+/* 1. satır (üst alan) */
+.top-row{
+  display: grid;
+  grid-template-columns: 340px minmax(520px, 1fr) 340px; /* orta kolonu genişlettik */
+  gap: 18px;
+  align-items: start;
+}
+
+/* Orta kolonda kartlar alt alta gelecek */
+.top-center-column{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Sol ve sağ kolonlar da alt alta */
+.top-left-column,
+.top-right-column{
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+/* Orta kolondaki kartlar biraz daha kompakt */
+.top-center-column .card{
+  padding: 14px 14px;
+}
+
+/* Grafik alanını sabitle: çok küçülmesin */
+.chart-wrapper{
+  height: 260px;            /* grafiğe net yer ver */
+}
+
+/* Ölçüm girişi kartı form elemanları biraz sıkışık olmasın */
+.top-center-column .form-card label{
+  margin-top: 10px;
+  display: block;
+  font-size: 13px;
+}
+
+.top-center-column .form-card input,
+.top-center-column .form-card textarea,
+.top-center-column .form-card select{
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+@media (max-width: 1200px){
+  .top-row{
+    grid-template-columns: 320px 1fr; /* sağ kolonu alta atacağız */
+  }
+  .top-right-column{
+    grid-column: 1 / -1; /* sağ kolon tam genişlikte alta insin */
+  }
+}
+
+@media (max-width: 860px){
+  .top-row{
+    grid-template-columns: 1fr; /* hepsi tek kolona düşsün */
+  }
+}
+.measurement-inline-card{
+  padding: 12px 14px;
+}
+.measurement-inline-card textarea{
+  min-height: 70px;
+  resize: vertical;
+}
+/* Trend pill base */
+.trend-pill{
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* up/down/neutral */
+.trend-up{
+  background: #dcfce7;
+  color: #166534;
+}
+
+.trend-down{
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.trend-neutral{
+  background: #e5e7eb;
+  color: #111827;
+}
+.ai-sim-prob{
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.ai-sim-note{
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.9;
+}

@@ -16,28 +16,13 @@ os.makedirs(MODELS_DIR, exist_ok=True)
 
 
 def load_training_data():
-    """
-    Burada kendi dataset'ini okuyacaksın.
-    Örneğin:
-      - daha önce oluşturduğun bir CSV
-      - ya da SQL'den export edilmiş bir tablo
-
-    Beklenen kolonlar:
-      glucose, carbs_win_1, carbs_win_2, carbs_win_3,
-      bolus, bolus_corr, basal,
-      ex_minutes, ex_intensity, steps,
-      is_sleep, time_sin, time_cos,
-      risk_label  (0=hypo, 1=normal, 2=hyper)
-
-    Aşağıda örnek bir CSV path'i var; kendine göre değiştir.
-    """
     data_path = os.path.join(BASE_DIR, "data", "risk_training_data.csv")
     df = pd.read_csv(data_path)
 
     # Feature'lar
     X = df[XGB_FEATURE_ORDER].astype(float).values
 
-    # Hedef / label (0,1,2)
+    # Hedef / label (0,1,2) riski 0,1,2 olarak sınıflandırır.
     y = df["risk_label"].astype(int).values
 
     return X, y
@@ -73,7 +58,7 @@ def train_and_save():
     model.save_model(model_path)
     print(f"XGB model kaydedildi: {model_path}")
 
-    # Feature sırasını da JSON olarak kaydedelim (doküman gibi)
+    # Feature sırasını da JSON olarak kaydet
     feature_order_path = os.path.join(
         MODELS_DIR, "xgb_feature_order.json"
     )

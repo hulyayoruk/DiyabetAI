@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnExcel.addEventListener("click", (e) => {
       e.preventDefault();
       const days = daysSelect.value;
-      window.location.href = `/export_measurements_excel?days=${days}`;
+      window.location.href = `/rapor/olcumler/excel?days=${days}`;
     });
   }
 
@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnPdf.addEventListener("click", (e) => {
       e.preventDefault();
       const days = daysSelect.value;
-      window.location.href = `/export_measurements_pdf?days=${days}`;
+      window.location.href = `/rapor/olcumler/pdf?days=${days}`;
     });
   }
 

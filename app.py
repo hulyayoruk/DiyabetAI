@@ -15,8 +15,6 @@ import numpy as np
 
 from ml.serve_models import predict_all, predict_xgb
 from ml.features import build_lstm_window
-
-# 📄 Rapor için ek kütüphaneler
 from dotenv import load_dotenv
 import io
 import pandas as pd
@@ -29,7 +27,6 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")
 app.permanent_session_lifetime = timedelta(minutes=30)
 
-#  MSSQL bağlantısı
 def get_connection():
     conn_str = os.getenv("DB_CONN_STR")
     if not conn_str:
@@ -40,6 +37,43 @@ def get_connection():
             "Trusted_Connection=yes;"
         )
     return pyodbc.connect(conn_str)
+
+
+
+def compute_glucose_trend(values, eps=3.0):
+    """
+    values: en güncel değer en başta olacak şekilde liste (DESC çektiğin için).
+    eps: mg/dL eşiği. Çok küçük oynamaları 'stabil' say.
+    """
+    if not values or len(values) < 2:
+        return {
+            "trend": "stable",
+            "trend_text": "Yeterli veri yok",
+            "trend_class": "neutral",
+        }
+
+    last = float(values[0])
+    prev = float(values[1])
+    diff = last - prev
+
+    if diff > eps:
+        return {
+            "trend": "rising",
+            "trend_text": "Yükseliş eğiliminde",
+            "trend_class": "up",
+        }
+    elif diff < -eps:
+        return {
+            "trend": "falling",
+            "trend_text": "Düşüş eğiliminde",
+            "trend_class": "down",
+        }
+    else:
+        return {
+            "trend": "stable",
+            "trend_text": "Normal / stabil",
+            "trend_class": "neutral",
+        }
 
 
 #  Dashboard (Ana Sayfa)
@@ -78,7 +112,7 @@ def index():
     durum = row[5] if row and row[5] is not None else None
     ilac_bilgileri = row[6] if row and row[6] is not None else None
 
-    # 2️⃣ Kan Şekeri İstatistikleri (grafik kartında kullanılan)
+    # 2️⃣ Kan Şekeri İstatistikleri
     cursor.execute(
         """
         SELECT TOP 30 Glikoz
@@ -99,11 +133,9 @@ def index():
             current_glucose = values[0]
             average_glucose = sum(values) / len(values)
 
- # ✅ 3) HbA1c tahmini (DCCT formülünden)
+    # ✅ 3) HbA1c tahmini (DCCT formülü)
     hba1c_est = None
     if average_glucose is not None:
-        # eAG = average_glucose (mg/dL)
-        # A1c = (eAG + 46.7) / 28.7
         hba1c_est = (average_glucose + 46.7) / 28.7
 
     # 3️⃣ AI Tahmini (30 dk sonrası)
@@ -111,8 +143,6 @@ def index():
     risk = "Henüz yeterli veri yok, risk tespit edilmedi."
 
     try:
-        print("🔍 AI tahmini başladı...")
-
         cursor.execute(
             """
             SELECT TOP 1 OlcumTarihSaat
@@ -123,7 +153,6 @@ def index():
             (session["email"],),
         )
         last_row = cursor.fetchone()
-        print("🔍 last_row:", last_row)
 
         if last_row:
             cursor.execute(
@@ -132,15 +161,10 @@ def index():
             user_row = cursor.fetchone()
             if user_row:
                 kullanici_id = user_row[0]
-                print("🔍 kullanici_id:", kullanici_id)
-
                 window = build_lstm_window(conn, kullanici_id)
-                print("🔍 window:", None if window is None else window.shape)
 
                 if window is not None:
                     info = predict_all(window)
-                    print("🔍 info:", info)
-
                     predicted_glucose = round(float(info["prediction"]), 1)
 
                     risk_map = {
@@ -207,7 +231,6 @@ def olcum_ekle():
 
     conn.commit()
     conn.close()
-
     return redirect("/")
 
 
@@ -222,10 +245,7 @@ def ogun_ekle():
     notlar = request.form.get("ogun_not") or None
 
     try:
-        if ogun_zaman_str:
-            ogun_zamani = datetime.fromisoformat(ogun_zaman_str)
-        else:
-            ogun_zamani = datetime.now()
+        ogun_zamani = datetime.fromisoformat(ogun_zaman_str) if ogun_zaman_str else datetime.now()
     except Exception:
         ogun_zamani = datetime.now()
 
@@ -271,10 +291,7 @@ def egzersiz_ekle():
     notlar = request.form.get("egzersiz_not") or None
 
     try:
-        if eg_zaman_str:
-            eg_zamani = datetime.fromisoformat(eg_zaman_str)
-        else:
-            eg_zamani = datetime.now()
+        eg_zamani = datetime.fromisoformat(eg_zaman_str) if eg_zaman_str else datetime.now()
     except Exception:
         eg_zamani = datetime.now()
 
@@ -319,15 +336,12 @@ def uyku_ekle():
     notlar = request.form.get("uyku_not") or None
 
     try:
-        uyku_baslangic = (
-            datetime.fromisoformat(uyku_baslangic_str) if uyku_baslangic_str else None
-        )
+        uyku_baslangic = datetime.fromisoformat(uyku_baslangic_str) if uyku_baslangic_str else None
     except Exception:
         uyku_baslangic = None
+
     try:
-        uyku_bitis = (
-            datetime.fromisoformat(uyku_bitis_str) if uyku_bitis_str else None
-        )
+        uyku_bitis = datetime.fromisoformat(uyku_bitis_str) if uyku_bitis_str else None
     except Exception:
         uyku_bitis = None
 
@@ -382,7 +396,6 @@ def activity_summary():
 
     kullanici_id = user[0]
 
-    # 1) Öğünlerden toplam karbonhidrat
     cursor.execute(
         """
         SELECT ISNULL(SUM(Karbonhidrat), 0)
@@ -395,7 +408,6 @@ def activity_summary():
     row_ogun = cursor.fetchone()
     total_carb = float(row_ogun[0] or 0)
 
-    # 2) Egzersizden süre, şiddet, adım
     cursor.execute(
         """
         SELECT
@@ -413,7 +425,6 @@ def activity_summary():
     avg_intensity = float(row_ex[1] or 0)
     total_steps = int(row_ex[2] or 0)
 
-    # 3) Uykudan toplam süre
     cursor.execute(
         """
         SELECT ISNULL(SUM(ToplamDakika), 0)
@@ -456,30 +467,18 @@ def kayit():
     durum = request.form.get("durum") or None
 
     if sifre != sifre_tekrar:
-        return render_template(
-            "kayit.html",
-            hata="Şifreler uyuşmuyor!",
-        )
+        return render_template("kayit.html", hata="Şifreler uyuşmuyor!")
 
-    # Aynı e-posta var mı kontrol et
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT Id FROM Kullanici WHERE LOWER(Email) = ?",
-        (email,),
-    )
+    cursor.execute("SELECT Id FROM Kullanici WHERE LOWER(Email) = ?", (email,))
     exists = cursor.fetchone()
     if exists:
         conn.close()
-        return render_template(
-            "kayit.html",
-            hata="Bu e-posta ile zaten bir hesap var.",
-        )
+        return render_template("kayit.html", hata="Bu e-posta ile zaten bir hesap var.")
 
-    # Şifreyi hash’le
     sifre_hashed = generate_password_hash(sifre)
 
-    # Kullanıcıyı ekle
     cursor.execute(
         """
         INSERT INTO Kullanici (AdSoyad, Email, Sifre)
@@ -488,20 +487,15 @@ def kayit():
         (adsoyad, email, sifre_hashed),
     )
 
-    # Id’yi çek
     cursor.execute("SELECT Id FROM Kullanici WHERE LOWER(Email) = ?", (email,))
     row = cursor.fetchone()
     if not row:
         conn.rollback()
         conn.close()
-        return render_template(
-            "kayit.html",
-            hata="Kayıt sırasında bir hata oluştu.",
-        )
+        return render_template("kayit.html", hata="Kayıt sırasında bir hata oluştu.")
 
     kullanici_id = row[0]
 
-    # Sayısal alanları güvenli çevir
     yas_val = int(yas) if yas else None
     kilo_val = float(kilo) if kilo else None
     boy_val = int(boy) if boy else None
@@ -534,17 +528,11 @@ def giris():
     sifre = request.form.get("sifre") or ""
 
     if not email or not sifre:
-        return render_template(
-            "giris.html",
-            hata="Lütfen e-posta ve şifre girin.",
-        )
+        return render_template("giris.html", hata="Lütfen e-posta ve şifre girin.")
 
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT Email, Sifre FROM Kullanici WHERE LOWER(Email) = ?",
-        (email,),
-    )
+    cursor.execute("SELECT Email, Sifre FROM Kullanici WHERE LOWER(Email) = ?", (email,))
     user = cursor.fetchone()
     conn.close()
 
@@ -555,21 +543,17 @@ def giris():
     stored_pwd = user[1] or ""
 
     ok = False
-
-    # Önce hash kontrolü dene
     try:
         ok = check_password_hash(stored_pwd, sifre)
     except Exception:
         ok = False
 
-    # Eğer hash değilse (eski düz şifre kayıtları için fallback)
     if not ok and not stored_pwd.startswith("pbkdf2:"):
         ok = (stored_pwd == sifre)
 
     if not ok:
         return render_template("giris.html", hata="E-posta veya şifre hatalı!")
 
-    # Giriş başarılı
     session.permanent = True
     session["email"] = stored_email.lower()
     return redirect("/")
@@ -618,15 +602,7 @@ def profil_panel():
                 IlacBilgileri = ?
             WHERE KullaniciId = (SELECT Id FROM Kullanici WHERE Email = ?)
             """,
-            (
-                boy_val,
-                tani_val,
-                yas_val,
-                kilo_val,
-                durum,
-                ilac_bilgileri,
-                session["email"],
-            ),
+            (boy_val, tani_val, yas_val, kilo_val, durum, ilac_bilgileri, session["email"]),
         )
 
         conn.commit()
@@ -677,15 +653,12 @@ def sifremi_unuttum():
 
         if user:
             import secrets
-
             token = secrets.token_urlsafe(16)
             session["reset_email"] = email
             session["reset_token"] = token
             return redirect("/sifremi_unuttum_ok")
 
-        return render_template(
-            "sifremi_unuttum.html", hata="Bu e-posta sistemde kayıtlı değil!"
-        )
+        return render_template("sifremi_unuttum.html", hata="Bu e-posta sistemde kayıtlı değil!")
 
     return render_template("sifremi_unuttum.html")
 
@@ -706,16 +679,12 @@ def sifre_sifirla(token):
 
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            "UPDATE Kullanici SET Sifre=? WHERE Email=?",
-            (yeni_hash, session["reset_email"]),
-        )
+        cursor.execute("UPDATE Kullanici SET Sifre=? WHERE Email=?", (yeni_hash, session["reset_email"]))
         conn.commit()
         conn.close()
 
         session.pop("reset_token", None)
         session.pop("reset_email", None)
-
         return redirect("/giris")
 
     return render_template("sifre_sifirla.html", token=token)
@@ -727,7 +696,9 @@ def cikis():
     return redirect("/giris")
 
 
-#  API - Ölçüm Geçmişi (grafik için)
+# =========================================
+# ✅ API - Ölçüm Geçmişi (grafik + trend için)
+# =========================================
 @app.route("/api/data")
 def get_data():
     if "email" not in session:
@@ -745,22 +716,49 @@ def get_data():
         """,
         (session["email"],),
     )
-    data = cursor.fetchall()
+    rows = cursor.fetchall()
     conn.close()
+
+    # values DESC (en güncel en başta)
+    values_desc = [float(r[1]) for r in rows if r[1] is not None]
+
+    def compute_glucose_trend(values, eps=3.0):
+        if not values or len(values) < 2:
+            return {"trend": "stable", "trend_text": "Yeterli veri yok", "trend_class": "neutral"}
+
+        last = float(values[0])
+        prev = float(values[1])
+        diff = last - prev
+
+        if diff > eps:
+            return {"trend": "rising", "trend_text": "Değerler yükseliş eğiliminde", "trend_class": "up"}
+        elif diff < -eps:
+            return {"trend": "falling", "trend_text": "Değerler düşüş eğiliminde", "trend_class": "down"}
+        else:
+            return {"trend": "stable", "trend_text": "Normal / stabil", "trend_class": "neutral"}
+
+    trend_info = compute_glucose_trend(values_desc, eps=3.0)
+
+    # Chart için ters çevir (eski -> yeni)
+    labels = [r[0].strftime("%d.%m %H:%M") for r in rows][::-1]
+    values = [r[1] for r in rows][::-1]
 
     return jsonify(
         {
-            "labels": [row[0].strftime("%d.%m %H:%M") for row in data][::-1],
-            "values": [row[1] for row in data][::-1],
+            "labels": labels,
+            "values": values,
+            "trend": trend_info["trend"],
+            "trend_text": trend_info["trend_text"],
+            "trend_class": trend_info["trend_class"],
         }
     )
-
 
 @app.route("/api/ai_suggestions")
 def ai_suggestions():
     if "email" not in session:
         return jsonify({"error": "login required"}), 401
 
+    conn = None
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -768,98 +766,312 @@ def ai_suggestions():
         cursor.execute("SELECT Id FROM Kullanici WHERE Email = ?", (session["email"],))
         row = cursor.fetchone()
         if not row:
-            conn.close()
             return jsonify({"error": "user not found"}), 400
 
         kullanici_id = row[0]
 
         window = build_lstm_window(conn, kullanici_id)
         if window is None:
-            conn.close()
             return jsonify({"error": "not_enough_data"}), 400
 
         info = predict_all(window)
         base_feat = window[-1].copy()
 
-        # Ana tahmin
+        # --- base prediction & probs ---
         prediction_val = float(info["prediction"])
+
         base_probs = predict_xgb(base_feat.reshape(1, -1))[0]
+        base_p_hypo = float(base_probs[0])
+        base_p_normal = float(base_probs[1])
         base_p_hyper = float(base_probs[2])
 
-        # → Carbs bilgisini güvenle bul (son 24 saat içinde en son girilen)
-        cursor.execute("""
+        def probs_to_dict(probs):
+            return {
+                "p_hypo": float(probs[0]) * 100.0,
+                "p_normal": float(probs[1]) * 100.0,
+                "p_hyper": float(probs[2]) * 100.0,
+            }
+
+        base_prob_dict = probs_to_dict(base_probs)
+
+        # --- night hypo risk ---
+        is_sleep_now = bool(base_feat[10] >= 0.5)
+        now_hour = datetime.now().hour
+        is_night = (now_hour >= 23 or now_hour < 7) or is_sleep_now
+        night_hypo_risk_pct = (base_p_hypo * 100.0) if is_night else 0.0
+
+        # --- insulin context ---
+        last_basal_dose = 0.0
+        bolus_6h = 0.0
+        current_dose = 0.0
+        current_dose_type = None
+
+        try:
+            cursor.execute(
+                """
+                SELECT TOP 1 Tip, Doz
+                FROM InsulinGecmisi
+                WHERE KullaniciId=?
+                ORDER BY UygulamaZamani DESC
+                """,
+                (kullanici_id,),
+            )
+            last_any = cursor.fetchone()
+            if last_any:
+                current_dose_type = last_any[0]
+                current_dose = float(last_any[1] or 0.0)
+        except Exception:
+            current_dose_type = None
+            current_dose = 0.0
+
+        try:
+            cursor.execute(
+                """
+                SELECT TOP 1 Doz, UygulamaZamani
+                FROM InsulinGecmisi
+                WHERE KullaniciId=? AND Tip='basal'
+                ORDER BY UygulamaZamani DESC
+                """,
+                (kullanici_id,),
+            )
+            last_basal = cursor.fetchone()
+            last_basal_dose = float(last_basal[0]) if last_basal else 0.0
+
+            cursor.execute(
+                """
+                SELECT ISNULL(SUM(Doz),0)
+                FROM InsulinGecmisi
+                WHERE KullaniciId=? AND Tip='bolus'
+                  AND UygulamaZamani >= DATEADD(HOUR, -6, GETDATE())
+                """,
+                (kullanici_id,),
+            )
+            bolus_6h = float(cursor.fetchone()[0] or 0.0)
+        except Exception:
+            last_basal_dose = 0.0
+            bolus_6h = 0.0
+
+        TH_HYPO_WARN = 0.20
+        TH_HYPO_HIGH = 0.35
+
+        hypo_warning = None
+        if is_night:
+            if base_p_hypo >= TH_HYPO_HIGH:
+                hypo_warning = {
+                    "level": "high",
+                    "title": "Gece hipoglisemi riski yüksek",
+                    "text": (
+                        f"Model bu koşullarda hipoglisemi olasılığını %{night_hypo_risk_pct:.1f} görüyor. "
+                        f"(Son basal: {last_basal_dose:.1f}U, son 6s bolus toplamı: {bolus_6h:.1f}U)"
+                    ),
+                }
+            elif base_p_hypo >= TH_HYPO_WARN:
+                hypo_warning = {
+                    "level": "warn",
+                    "title": "Gece hipoglisemi riski artmış olabilir",
+                    "text": (
+                        f"Model hipoglisemi olasılığını %{night_hypo_risk_pct:.1f} görüyor. "
+                        f"(Son basal: {last_basal_dose:.1f}U, son 6s bolus toplamı: {bolus_6h:.1f}U)"
+                    ),
+                }
+
+        # --- UI context from DB ---
+        cursor.execute(
+            """
             SELECT TOP 1 Karbonhidrat
             FROM OgunGecmisi
             WHERE KullaniciId = ? AND Karbonhidrat > 0
             ORDER BY OgunZamani DESC
-        """, (kullanici_id,))
+            """,
+            (kullanici_id,),
+        )
         last_carb_row = cursor.fetchone()
         current_carbs = float(last_carb_row[0]) if last_carb_row else 0.0
 
-        # → Exercise süresi (son ölçüm)
         current_ex_min = float(base_feat[7])
 
+        # --- helper: changed indices ---
+        def diff_indices(a, b, eps=1e-9, limit=50):
+            out = []
+            for i in range(len(a)):
+                if abs(float(a[i]) - float(b[i])) > eps:
+                    out.append(i)
+                    if len(out) >= limit:
+                        break
+            return out
+
+        # -------------------------
+        # SIM CARDS (aynı kalsın)
+        # -------------------------
         simulations = []
 
-        # SİMÜLASYON 1: -%20 karbonhidrat
         if current_carbs > 0:
             feat_lowcarb = base_feat.copy()
             feat_lowcarb[1:4] = feat_lowcarb[1:4] * 0.8
-
             probs_lowcarb = predict_xgb(feat_lowcarb.reshape(1, -1))[0]
-            p_hyper_lowcarb = float(probs_lowcarb[2])
+            simulations.append(
+                {
+                    "title": "-%20 karbonhidrat",
+                    "subtitle": f"Mevcut KH ~ {current_carbs:.1f} g",
+                    "before": base_prob_dict,
+                    "after": probs_to_dict(probs_lowcarb),
+                }
+            )
 
-            simulations.append({
-                "title": "-%20 karbonhidrat",
-                "subtitle": f"Mevcut KH ~ {current_carbs:.1f} g",
-                "before_prob": base_p_hyper * 100,
-                "after_prob": p_hyper_lowcarb * 100
-            })
-
-        # SİMÜLASYON 2: +%50 egzersiz süresi
-        if current_ex_min > 0:
+        if current_ex_min >= 0:
             feat_moreex = base_feat.copy()
-            feat_moreex[7] = feat_moreex[7] * 1.5
-
+            feat_moreex[7] = feat_moreex[7] * 2.0
+            feat_moreex[9] = feat_moreex[9] + 4000
             probs_moreex = predict_xgb(feat_moreex.reshape(1, -1))[0]
-            p_hyper_moreex = float(probs_moreex[2])
+            simulations.append(
+                {
+                    "title": "+%50 ek egzersiz süresi",
+                    "subtitle": f"Mevcut süre ~ {current_ex_min:.1f} dk",
+                    "before": base_prob_dict,
+                    "after": probs_to_dict(probs_moreex),
+                }
+            )
 
-            simulations.append({
-                "title": "+%50 ek egzersiz süresi",
-                "subtitle": f"Mevcut süre ~ {current_ex_min:.1f} dk",
-                "before_prob": base_p_hyper * 100,
-                "after_prob": p_hyper_moreex * 100
-            })
+        # -------------------------
+        # SWEEP TEST (neden değişmiyor?)
+        # - KH ve egzersizi daha geniş aralıkta oynat
+        # -------------------------
+        sweep = {"carb_multipliers": [], "ex_multipliers": []}
 
-        conn.close()
+        # KH sweep (1:4 birlikte)
+        for m in [0.25, 0.5, 0.8, 1.0, 1.25, 1.5, 2.0]:
+            f = base_feat.copy()
+            f[1:4] = f[1:4] * m
+            p = predict_xgb(f.reshape(1, -1))[0]
+            sweep["carb_multipliers"].append(
+                {
+                    "multiplier": m,
+                    "changed_indices": diff_indices(base_feat, f),
+                    "after": probs_to_dict(p),
+                }
+            )
 
-        return jsonify({
-            "prediction": prediction_val,
-            "trend": info["trend"],
-            "trend_desc": (
-                "Değerler artış eğiliminde 📈" if info["trend"] == "rising" else
-                "Değerler düşüş eğiliminde 📉" if info["trend"] == "falling" else
-                "Şu an sabit bir seyir var ⚖️"
+        # Egzersiz sweep (index 7)
+        for m in [0.0, 0.5, 1.0, 1.5, 2.0, 3.0]:
+            f = base_feat.copy()
+            f[7] = f[7] * m
+            p = predict_xgb(f.reshape(1, -1))[0]
+            sweep["ex_multipliers"].append(
+                {
+                    "multiplier": m,
+                    "changed_indices": diff_indices(base_feat, f),
+                    "after": probs_to_dict(p),
+                }
+            )
+
+        # -------------------------
+        # Risk label/desc
+        # -------------------------
+        risk_label = (
+            "Hipoglisemi riski"
+            if info["risk_class"] == 0
+            else "Kontrol altında"
+            if info["risk_class"] == 1
+            else "Hiperglisemi riski"
+        )
+
+        risk_desc = (
+            "Kan şekerin düşebilir, dikkatli ol."
+            if info["risk_class"] == 0
+            else "30 dk içinde değerler normal aralıkta görünüyor."
+            if info["risk_class"] == 1
+            else "Kan şekerin yükselebilir, yakın takipte kal."
+        )
+
+        trend = info.get("trend")
+        trend_desc = (
+            "Değerler artış eğiliminde 📈"
+            if trend == "rising"
+            else "Değerler düşüş eğiliminde 📉"
+            if trend == "falling"
+            else "Şu an sabit bir seyir var ⚖️"
+        )
+
+        # -------------------------
+        # DEBUG
+        # -------------------------
+        debug = {
+            "base_feat_head": [float(x) for x in base_feat[:12]],
+            "note": (
+                "Eğer sweep'te de olasılıklar hiç değişmiyorsa, XGB bu feature'ları kullanmıyor "
+                "veya aynı leaf'te kalıyorsunuz. Eğer sadece bazı multiplier'larda değişiyorsa, "
+                "threshold etkisi var."
             ),
-            "risk_label": (
-                "Hipoglisemi riski" if info["risk_class"] == 0 else
-                "Kontrol altında" if info["risk_class"] == 1 else
-                "Hiperglisemi riski"
-            ),
-            "risk_desc": (
-                "Kan şekerin düşebilir, dikkatli ol." if info["risk_class"] == 0 else
-                "30 dk içinde değerler normal aralıkta görünüyor." if info["risk_class"] == 1 else
-                "Kan şekerin yükselebilir, yakın takipte kal."
-            ),
-            "simulations": simulations
-        })
+        }
+
+        return jsonify(
+            {
+                "prediction": prediction_val,
+                "trend": trend,
+                "trend_desc": trend_desc,
+                "risk_label": risk_label,
+                "risk_desc": risk_desc,
+
+                "simulations": simulations,
+                "sweep": sweep,       # ✅ yeni
+                "debug": debug,       # ✅ sade debug
+
+                "p_hypo": base_p_hypo * 100,
+                "p_normal": base_p_normal * 100,
+                "p_hyper": base_p_hyper * 100,
+
+                "night_hypo_risk_pct": night_hypo_risk_pct,
+                "is_night": is_night,
+                "hypo_warning": hypo_warning,
+                "insulin_context": {
+                    "last_basal_dose": last_basal_dose,
+                    "bolus_last_6h": bolus_6h,
+                    "current_insulin_dose": current_dose,
+                    "current_insulin_type": current_dose_type,
+                },
+            }
+        )
 
     except Exception as e:
         print("[AI Error]", e)
         return jsonify({"error": str(e)}), 500
 
+    finally:
+        try:
+            if conn is not None:
+                conn.close()
+        except Exception:
+            pass
 
-#  Dönemsel glikoz özeti (donut chart kartı)
+@app.route("/insulin_ekle", methods=["POST"])
+def insulin_ekle():
+    if "email" not in session:
+        return redirect("/giris")
+
+    tip = request.form["tip"]
+    doz = float(request.form["doz"])
+    zaman = request.form.get("zaman")
+    zaman = datetime.fromisoformat(zaman) if zaman else datetime.now()
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT Id FROM Kullanici WHERE Email=?", (session["email"],))
+    uid = cursor.fetchone()[0]
+
+    cursor.execute(
+        """
+        INSERT INTO InsulinGecmisi (KullaniciId, Tip, Doz, UygulamaZamani)
+        VALUES (?, ?, ?, ?)
+        """,
+        (uid, tip, doz, zaman),
+    )
+
+    conn.commit()
+    conn.close()
+    return redirect("/")
+
+
 @app.route("/api/period_report")
 def period_report():
     if "email" not in session:
@@ -916,13 +1128,7 @@ def period_report():
         inrange = len([v for v in values if 70 <= v <= 180]) / n * 100
         hyper = len([v for v in values if v > 180]) / n * 100
 
-        return {
-            "count": n,
-            "avg": avg_val,
-            "hypo": hypo,
-            "inrange": inrange,
-            "hyper": hyper,
-        }
+        return {"count": n, "avg": avg_val, "hypo": hypo, "inrange": inrange, "hyper": hyper}
 
     cur_stats = get_stats(start_cur, end_cur)
     prev_stats = get_stats(start_prev, end_prev)
@@ -960,7 +1166,6 @@ def period_report():
     )
 
 
-#  ✅ Ölçüm listesi (JSON) – kartta gösterilecek
 @app.route("/api/measurement_list")
 def measurement_list():
     if "email" not in session:
@@ -1017,7 +1222,6 @@ def measurement_list():
     return jsonify({"rows": data})
 
 
-#  ✅ Excel indirme
 @app.route("/rapor/olcumler/excel")
 def export_measurements_excel():
     if "email" not in session:
@@ -1068,7 +1272,6 @@ def export_measurements_excel():
     df = pd.DataFrame(data)
 
     output = io.BytesIO()
-    # openpyxl kurulu olmalı: pip install openpyxl
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Ölçümler")
     output.seek(0)
@@ -1082,7 +1285,6 @@ def export_measurements_excel():
     )
 
 
-#  ✅ PDF indirme
 @app.route("/rapor/olcumler/pdf")
 def export_measurements_pdf():
     if "email" not in session:
@@ -1131,7 +1333,6 @@ def export_measurements_pdf():
     c.setFont("Helvetica", 9)
     y = height - 70
 
-    # Başlık satırı
     c.drawString(40, y, "Tarih / Saat")
     c.drawString(150, y, "Glikoz (mg/dL)")
     c.drawString(240, y, "İlaç")

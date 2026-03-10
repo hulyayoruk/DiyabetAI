@@ -1,111 +1,86 @@
-document.addEventListener("DOMContentLoaded", async () => {
+// static/js/chart.js
+document.addEventListener("DOMContentLoaded", () => {
   const canvas = document.getElementById("glucoseChart");
+  const trendPill = document.getElementById("glucose-trend-pill");
+
   if (!canvas) return;
 
-  const ctx = canvas.getContext("2d");
-  let glucoseChart = null;
+  let chartInstance = null;
 
-  async function fetchData() {
+  function setTrendPill(trendText, trendClass) {
+    if (!trendPill) return;
+
+    // metin
+    trendPill.textContent = trendText || "Normal / stabil";
+
+    // class reset + set
+    trendPill.classList.remove("trend-up", "trend-down", "trend-neutral");
+
+    if (trendClass === "up") trendPill.classList.add("trend-up");
+    else if (trendClass === "down") trendPill.classList.add("trend-down");
+    else trendPill.classList.add("trend-neutral");
+  }
+
+  async function loadChart() {
     try {
-      const response = await fetch("/api/data");
-      const data = await response.json();
+      const resp = await fetch("/api/data");
+      const data = await resp.json();
 
-      const values = data.values || [];
+      if (!resp.ok || data.error) {
+        setTrendPill("Trend yok", "neutral");
+        return;
+      }
+
+      // ✅ Trend etiketi (dinamik)
+      setTrendPill(data.trend_text, data.trend_class);
+
       const labels = data.labels || [];
+      const values = data.values || [];
 
-      // 🔹 Anlık ve ortalama değerleri güncelle
-      if (values.length > 0) {
-        const current = values[values.length - 1];
-        const avg =
-          values.reduce((a, b) => a + b, 0) / values.length;
+      if (!window.Chart) return;
 
-        const currentEl = document.getElementById("current");
-        const avgEl = document.getElementById("average");
-
-        if (currentEl) currentEl.textContent = `${current} mg/dL`;
-        if (avgEl) avgEl.textContent = `${avg.toFixed(1)} mg/dL`;
+      if (chartInstance) {
+        chartInstance.data.labels = labels;
+        chartInstance.data.datasets[0].data = values;
+        chartInstance.update();
+        return;
       }
 
-      // 🔹 Y ekseni için dinamik min–max (veriye göre)
-      let yMin = 50;
-      let yMax = 300;
-      if (values.length > 0) {
-        const vMin = Math.min(...values);
-        const vMax = Math.max(...values);
-        const padding = 20;
-
-        yMin = Math.max(0, Math.floor((vMin - padding) / 10) * 10);
-        yMax = Math.ceil((vMax + padding) / 10) * 10;
-      }
-
-      if (glucoseChart) {
-        // Mevcut grafiği güncelle
-        glucoseChart.data.labels = labels;
-        glucoseChart.data.datasets[0].data = values;
-        glucoseChart.options.scales.y.min = yMin;
-        glucoseChart.options.scales.y.max = yMax;
-        glucoseChart.update();
-      } else {
-        // Yeni grafik oluştur
-        glucoseChart = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: labels,
-            datasets: [
-              {
-                label: "Kan Şekeri (mg/dL)",
-                data: values,
-                borderColor: "#2563eb",
-                backgroundColor: "rgba(37, 99, 235, 0.15)",
-                borderWidth: 2,
-                tension: 0.35,
-                fill: true,
-                pointRadius: 3,
-                pointHoverRadius: 5
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false, // kartın yüksekliğini daha iyi doldursun
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (ctx) => `${ctx.parsed.y} mg/dL`
-                }
-              }
+      chartInstance = new Chart(canvas, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Glikoz",
+              data: values,
+              fill: true,
+              tension: 0.35,
+              borderWidth: 2,
+              pointRadius: 3,
             },
-            scales: {
-              x: {
-                ticks: {
-                  maxRotation: 45,
-                  minRotation: 45
-                }
-              },
-              y: {
-                min: yMin,
-                max: yMax,
-                ticks: {
-                  stepSize: 20,
-                  callback: (value) => `${value}`
-                }
-              }
-            }
-          }
-        });
-      }
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: true },
+          },
+          scales: {
+            y: { beginAtZero: false },
+          },
+        },
+      });
     } catch (err) {
-      console.error("Grafik verisi alınırken hata:", err);
+      console.error("chart load error:", err);
+      setTrendPill("Trend yüklenemedi", "neutral");
     }
   }
-  await fetchData();
-  // Her 60 sn’de bir güncelle
-  setInterval(fetchData, 60000);
 
-  // Ekran boyutu değişirse grafiği yeniden boyutlandır
-  window.addEventListener("resize", () => {
-    if (glucoseChart) glucoseChart.resize();
-  });
+  loadChart();
+
+  // İstersen canlı güncelleme:
+  // setInterval(loadChart, 2 * 60 * 1000);
 });
-

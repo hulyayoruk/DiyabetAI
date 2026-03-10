@@ -11,9 +11,9 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.optimizers import Adam
 
 
-# ==========================
-# 1. VERİYİ YÜKLE & TARİHLERİ PARSE ET
-# ==========================
+
+# verinin yüklenmesi ve parseleme işlemi
+
 
 def load_events(csv_path: str) -> pd.DataFrame:
     df = pd.read_csv(csv_path)
@@ -35,9 +35,7 @@ def load_events(csv_path: str) -> pd.DataFrame:
     return df
 
 
-# ==========================
-# 2. TEK HASTA İÇİN ZAMAN SERİSİ ÇERÇEVESİ
-# ==========================
+#tek hasta için bir zaman serisi oluşturuyoruz.
 
 def build_patient_timeseries(df_all: pd.DataFrame,
                              patient_id: int,
@@ -49,13 +47,13 @@ def build_patient_timeseries(df_all: pd.DataFrame,
     """
     df_p = df_all[df_all["patient_id"] == patient_id].copy()
 
-    # --- ANA GLİKOZ ZAMAN SERİSİ ---
+    # glikoz zaman serisi
     g = df_p[df_p["category"] == "glucose_level"].copy()
     g = g.dropna(subset=["ts_dt"])
     g = g.sort_values("ts_dt")
     g["glucose"] = pd.to_numeric(g["value"], errors="coerce")
 
-    # 5 dakikalık grid -> eksik zamanları doldur
+    # 5 dakikalar içerisinde eksik zamanları doldur
     g = g.set_index("ts_dt").resample(freq).asfreq()
     g["glucose"] = g["glucose"].interpolate(limit_direction="both")
 
@@ -63,7 +61,7 @@ def build_patient_timeseries(df_all: pd.DataFrame,
     g["patient_id"] = patient_id
     g["weight"] = df_p["weight"].iloc[0] if not df_p["weight"].isna().all() else np.nan
 
-    # --- MEAL (ÖĞÜN) ---
+    # öğün verileri
     meal = df_p[df_p["category"] == "meal"].copy()
     if not meal.empty:
         meal = meal.dropna(subset=["event_time"])
@@ -77,7 +75,7 @@ def build_patient_timeseries(df_all: pd.DataFrame,
     g["carbs_2h"] = g["carbs_event"].rolling("120min").sum()
     g["carbs_4h"] = g["carbs_event"].rolling("240min").sum()
 
-    # --- BOLUS İNSÜLİN ---
+    # bolus insülin verileri
     bolus = df_p[df_p["category"] == "bolus"].copy()
     if not bolus.empty:
         bolus = bolus.dropna(subset=["event_time"])
@@ -91,7 +89,7 @@ def build_patient_timeseries(df_all: pd.DataFrame,
     g["bolus_2h"] = g["bolus_event"].rolling("120min").sum()
     g["bolus_4h"] = g["bolus_event"].rolling("240min").sum()
 
-    # --- BASAL İNSÜLİN ---
+    # basal insülin verileri
     basal = df_p[df_p["category"] == "basal"].copy()
     if not basal.empty:
         basal = basal.dropna(subset=["event_time"])
@@ -101,7 +99,7 @@ def build_patient_timeseries(df_all: pd.DataFrame,
     else:
         g["basal_rate"] = np.nan
 
-    # TEMP BASAL (varsa basal_rate'i override edebilir)
+    # TEMP BASAL 
     temp = df_p[df_p["category"] == "temp_basal"].copy()
     if not temp.empty:
         temp["temp_val"] = pd.to_numeric(temp["value"], errors="coerce")
@@ -117,7 +115,7 @@ def build_patient_timeseries(df_all: pd.DataFrame,
         g["temp_basal_active"] = 0.0
         g["basal_effective"] = g["basal_rate"]
 
-    # --- EGZERSİZ ---
+    #EGZERSİZ verileri
     ex = df_p[df_p["category"] == "exercise"].copy()
     if not ex.empty:
         ex = ex.dropna(subset=["event_time"])
@@ -133,7 +131,7 @@ def build_patient_timeseries(df_all: pd.DataFrame,
     g["exercise_1h"] = g["ex_duration_event"].rolling("60min").sum()
     g["exercise_intensity_mean_1h"] = g["ex_intensity_event"].rolling("60min").mean()
 
-    # --- BASIS STEPS ---
+    # adım sayısı
     steps = df_p[df_p["category"] == "basis_steps"].copy()
     if not steps.empty:
         steps = steps.dropna(subset=["event_time"])
@@ -145,7 +143,7 @@ def build_patient_timeseries(df_all: pd.DataFrame,
 
     g["steps_30min"] = g["steps"].rolling("30min").sum()
 
-    # --- UYKU (basis_sleep + sleep) ---
+    # uyku verisi (uyku=1 uyku var)
     g["is_sleep"] = 0
 
     bs = df_p[df_p["category"] == "basis_sleep"].copy()
@@ -160,12 +158,12 @@ def build_patient_timeseries(df_all: pd.DataFrame,
             mask = (g.index >= row["ts_begin_dt"]) & (g.index <= row["ts_end_dt"])
             g.loc[mask, "is_sleep"] = 1
 
-    # --- ZAMAN FEATURES ---
+    # ZAMAN FEATURES
     g["minute_of_day"] = g.index.hour * 60 + g.index.minute
     g["time_sin"] = np.sin(2 * np.pi * g["minute_of_day"] / (24 * 60))
     g["time_cos"] = np.cos(2 * np.pi * g["minute_of_day"] / (24 * 60))
 
-    # --- HEDEF: 30 dakika sonrası glikoz ---
+    # HEDEF: 30 dakika sonrası glikoz 
     g["glucose_future"] = g["glucose"].shift(-horizon_steps)
 
     # BASİT RİSK ETİKETLERİ
@@ -183,9 +181,8 @@ def build_patient_timeseries(df_all: pd.DataFrame,
     return g
 
 
-# ==========================
-# 3. LSTM DATASET HAZIRLAMA
-# ==========================
+
+#Lstm için dataset hazırlama kısmı
 
 def make_lstm_dataset(g: pd.DataFrame, seq_len: int = 12):
     """
@@ -223,9 +220,8 @@ def make_lstm_dataset(g: pd.DataFrame, seq_len: int = 12):
     return np.array(X_seq), np.array(y_reg), np.array(y_hypo)
 
 
-# ==========================
-# 4. XGBOOST DATASET HAZIRLAMA
-# ==========================
+
+# Xgboost için dataset oluşturma
 
 def add_tabular_features(g: pd.DataFrame) -> pd.DataFrame:
     g = g.copy()
@@ -273,9 +269,7 @@ def make_xgb_dataset(g: pd.DataFrame):
     return X, y
 
 
-# ==========================
-# 5. TÜM HASTALAR İÇİN DATASET OLUŞTUR
-# ==========================
+#tüm hastalar için bir dataset oluştur kısmı
 
 def build_datasets_for_all_patients(csv_path: str,
                                     seq_len: int = 12,
@@ -314,9 +308,7 @@ def build_datasets_for_all_patients(csv_path: str,
     return X_lstm, y_lstm, X_xgb, y_xgb
 
 
-# ==========================
-# 6. LSTM MODEL EĞİTİMİ
-# ==========================
+#Lstm modelinin eğitim kısmı
 
 def train_lstm(X, y, epochs: int = 20, batch_size: int = 64):
     num_samples, seq_len, num_features = X.shape
@@ -355,9 +347,7 @@ def train_lstm(X, y, epochs: int = 20, batch_size: int = 64):
     return model, scaler
 
 
-# ==========================
-# 7. XGBOOST MODEL EĞİTİMİ
-# ==========================
+#xgboost modelinin eğitim kısmı
 
 def train_xgb(X, y):
     X_train, X_test, y_train, y_test = train_test_split(
@@ -383,13 +373,9 @@ def train_xgb(X, y):
 
     return xgb_clf
 
-
-# ==========================
-# 8. ÖRNEK ÇALIŞTIRMA
-# ==========================
+#modellerin trainini terminalde çıktı olarak görmek adına
 
 if __name__ == "__main__":
-    # İstersen burayı kendi absolute path’inle bırakabilirsin:
     csv_path = r"C:\Users\hulya\OneDrive\Masaüstü\Diyabet-AI\mühendislik projesi\data\ohio\all_patients_events.csv"
 
     print("Building datasets...")
@@ -400,7 +386,7 @@ if __name__ == "__main__":
 
     print("Training XGBoost...")
     xgb_model = train_xgb(X_xgb, y_xgb)
- # ==== MODELLERİ KAYDET ====
+ #MODELLERİ KAYDET 
     import os
     import joblib
 

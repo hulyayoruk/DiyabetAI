@@ -1,36 +1,34 @@
-# ml/features.py
-
 import numpy as np
-from .feature_config import XGB_FEATURE_ORDER
 
 
 def build_lstm_window(
     conn,
     kullanici_id: int,
     window_size: int = 12,
-    meal_window_hours: int = 3,
+    meal_window_hours: int = 3,          # ana pencere (UI için)
     exercise_window_hours: int = 6,
+    insulin_window_hours: int = 4,
 ):
     """
-    Son window_size adet ölçümden oluşan LSTM/XGB input penceresi üretir.
-
-    Her zaman adımı (t_i) için feature'lar:
-      0  - glucose            (OlcumGecmisi.Glikoz)
-      1–3 - carbs_win_*       (son meal_window_hours içindeki toplam KH, 3 kere kopya)
-      4  - bolus              (şimdilik 0)
-      5  - bolus_corr         (şimdilik 0)
-      6  - basal              (şimdilik 0)
-      7  - ex_minutes         (son exercise_window_hours içindeki toplam süre)
-      8  - ex_intensity       (aynı pencere içindeki MAX Seviye)
-      9  - steps              (aynı pencere içindeki toplam AdimSayisi)
-      10 - is_sleep           (UykuGecmisi aralığının içinde ise 1, yoksa 0)
-      11 - time_sin           (günün dakikasına göre sin)
-      12 - time_cos           (günün dakikasına göre cos)
+    Feature vektörü (13):
+      0  glc
+      1  carbs_1h
+      2  carbs_3h
+      3  carbs_6h
+      4  bolus_4h
+      5  reserved (0.0)
+      6  basal_last
+      7  ex_min_6h
+      8  ex_int_max_6h
+      9  steps_6h
+      10 is_sleep
+      11 time_sin
+      12 time_cos
     """
 
     cursor = conn.cursor()
 
-    # 1) Son window_size ölçümü (en yeni en üstte)
+    # En son ölçümleri al
     cursor.execute(
         """
         SELECT TOP (?) Glikoz, OlcumTarihSaat
@@ -42,110 +40,126 @@ def build_lstm_window(
     )
     rows = cursor.fetchall()
 
-    if not rows:
+    # En az 3 ölçüm yoksa pencere kurma
+    if not rows or len(rows) < 3:
         return None
-
-    if len(rows) < 3:
-        # Çok az veri, pencere üretmiyoruz
-        return None
-
-    # rows şu anda: [ (glc, ts), (glc, ts), ... ] yeni → eski
-    # Kronolojik sıraya çevir (eski → yeni)
     rows = list(reversed(rows))
 
-    # 3–11 kayıt varsa tekrar ederek doldur
+    # window_size'tan azsa başa pad et (rows + rows yerine deterministik)
     if len(rows) < window_size:
-        base = rows[:]
-        while len(rows) < window_size:
-            rows.extend(base)
-        rows = rows[-window_size:]
+        pad_count = window_size - len(rows)
+        first = rows[0]
+        rows = [first] * pad_count + rows
 
-    # Artık tam window_size kadar ölçümümüz var
+    # fazla geldiyse kırp
+    rows = rows[-window_size:]
+
     feature_rows = []
 
-    for glc, ts in rows:
-        glc = float(glc or 0.0)
-
-        # ---------- 2) Son meal_window_hours içindeki öğünler ----------
+    def sum_carbs(hours, ts):
         cursor.execute(
             """
-            SELECT ISNULL(SUM(Karbonhidrat), 0.0)
+            SELECT ISNULL(SUM(Karbonhidrat),0)
             FROM OgunGecmisi
-            WHERE KullaniciId = ?
-              AND OgunZamani >= DATEADD(HOUR, ?, ?)
-              AND OgunZamani <= ?
+            WHERE KullaniciId=?
+              AND OgunZamani BETWEEN DATEADD(HOUR, ?, ?) AND ?
             """,
-            (kullanici_id, -meal_window_hours, ts, ts),
+            (kullanici_id, -hours, ts, ts),
         )
-        carbs_total = float(cursor.fetchone()[0] or 0.0)
+        return float(cursor.fetchone()[0] or 0.0)
 
-        # 3 kez kopyalayalım (eski dataset'te KH_1, KH_2, KH_3 gibi düşün)
-        carbs_1 = carbs_total
-        carbs_2 = carbs_total
-        carbs_3 = carbs_total
+    def sum_bolus(hours, ts):
+        cursor.execute(
+            """
+            SELECT ISNULL(SUM(Doz),0)
+            FROM InsulinGecmisi
+            WHERE KullaniciId=? AND Tip='bolus'
+              AND UygulamaZamani BETWEEN DATEADD(HOUR, ?, ?) AND ?
+            """,
+            (kullanici_id, -hours, ts, ts),
+        )
+        return float(cursor.fetchone()[0] or 0.0)
 
-        # ---------- 3) Son exercise_window_hours içindeki egzersiz ----------
+    def last_basal(ts):
+        cursor.execute(
+            """
+            SELECT TOP 1 Doz
+            FROM InsulinGecmisi
+            WHERE KullaniciId=? AND Tip='basal'
+              AND UygulamaZamani <= ?
+            ORDER BY UygulamaZamani DESC
+            """,
+            (kullanici_id, ts),
+        )
+        r = cursor.fetchone()
+        return float(r[0]) if r else 0.0
+
+    def ex_agg(hours, ts):
         cursor.execute(
             """
             SELECT
-                ISNULL(SUM(SureDakika), 0.0)   AS toplam_sure,
-                ISNULL(MAX(Seviye), 0.0)       AS max_seviye,
-                ISNULL(SUM(AdimSayisi), 0.0)   AS toplam_adim
+              ISNULL(SUM(SureDakika),0),
+              ISNULL(MAX(Seviye),0),
+              ISNULL(SUM(AdimSayisi),0)
             FROM EgzersizGecmisi
-            WHERE KullaniciId = ?
-              AND EgzersizZamani >= DATEADD(HOUR, ?, ?)
-              AND EgzersizZamani <= ?
+            WHERE KullaniciId=?
+              AND EgzersizZamani BETWEEN DATEADD(HOUR, ?, ?) AND ?
             """,
-            (kullanici_id, -exercise_window_hours, ts, ts),
+            (kullanici_id, -hours, ts, ts),
         )
-        ex_row = cursor.fetchone()
-        ex_minutes = float(ex_row[0] or 0.0)
-        ex_intensity = float(ex_row[1] or 0.0)
-        steps = float(ex_row[2] or 0.0)
+        ex = cursor.fetchone()
+        ex_min = float(ex[0] or 0.0)
+        ex_int = float(ex[1] or 0.0)
+        steps = float(ex[2] or 0.0)
+        return ex_min, ex_int, steps
 
-        # ---------- 4) Uyku aralığında mı? ----------
+    def is_sleeping(ts):
         cursor.execute(
             """
-            SELECT TOP 1 1
+            SELECT 1
             FROM UykuGecmisi
-            WHERE KullaniciId = ?
+            WHERE KullaniciId=?
               AND UykuBaslangic <= ?
               AND UykuBitis >= ?
             """,
             (kullanici_id, ts, ts),
         )
-        is_sleep = 1.0 if cursor.fetchone() else 0.0
+        return 1.0 if cursor.fetchone() else 0.0
 
-        # ---------- 5) Gün içi saat sin/cos ----------
-        minute_of_day = ts.hour * 60 + ts.minute
-        time_sin = float(
-            np.sin(2 * np.pi * minute_of_day / (24 * 60))
-        )
-        time_cos = float(
-            np.cos(2 * np.pi * minute_of_day / (24 * 60))
-        )
+    for glc, ts in rows:
+        glc = float(glc or 0.0)
 
-        # Bolus / basal henüz kullanılmıyor → 0
-        bolus = 0.0
-        bolus_corr = 0.0
-        basal = 0.0
+        # KH: 1h / 3h / 6h 
+        carbs_1h = sum_carbs(1, ts)
+        carbs_3h = sum_carbs(meal_window_hours, ts)   # default 3h
+        carbs_6h = sum_carbs(6, ts)
 
-        feat = [
-            glc,            # 0: glucose
-            carbs_1,        # 1
-            carbs_2,        # 2
-            carbs_3,        # 3
-            bolus,          # 4
-            bolus_corr,     # 5
-            basal,          # 6
-            ex_minutes,     # 7
-            ex_intensity,   # 8
-            steps,          # 9
-            is_sleep,       # 10
-            time_sin,       # 11
-            time_cos,       # 12
-        ]
-        feature_rows.append(feat)
+        # bolus: son 4 saat
+        bolus_4h = sum_bolus(insulin_window_hours, ts)
 
-    window = np.array(feature_rows, dtype=float)
-    return window  # shape: (window_size, len(XGB_FEATURE_ORDER))
+        # basal: son aktif basal
+        basal = last_basal(ts)
+
+        # egzersiz: son 6 saat
+        ex_min, ex_int, steps = ex_agg(exercise_window_hours, ts)
+
+        # uyku flag
+        is_sleep = is_sleeping(ts)
+
+        # zaman sin/cos
+        minute = ts.hour * 60 + ts.minute
+        time_sin = float(np.sin(2 * np.pi * minute / 1440.0))
+        time_cos = float(np.cos(2 * np.pi * minute / 1440.0))
+
+        feature_rows.append([
+            glc,
+            carbs_1h, carbs_3h, carbs_6h,
+            bolus_4h,
+            0.0,              
+            basal,
+            ex_min, ex_int, steps,
+            is_sleep,
+            time_sin, time_cos
+        ])
+
+    return np.array(feature_rows, dtype=float)

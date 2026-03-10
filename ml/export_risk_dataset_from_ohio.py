@@ -1,41 +1,24 @@
 # ml/export_risk_dataset_from_ohio.py
 
-"""
-Ohio verisinden, XGBoost risk modeli için eğitim dataseti üretir.
-
-Çıktı:
-  <proje_kök>/data/risk_training_data.csv
-
-Kolonlar:
-  glucose, carbs_win_1, carbs_win_2, carbs_win_3,
-  bolus, bolus_corr, basal,
-  ex_minutes, ex_intensity, steps,
-  is_sleep, time_sin, time_cos,
-  risk_label
-"""
+'''xgboost modeli için eğitim dataseti oluşturma kısmı'''
 
 import os
 import numpy as np
 import pandas as pd
 
-# ⚠️ ÖNEMLİ: diabet_pipeline aynı klasörde (ml) olduğu için relative import
 from .diabet_pipeline import load_events, build_patient_timeseries
 
-# Proje kök klasörü (Diyabet-AI)
 ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
 
-# Ohio event verisinin yolu (kendi dosya yolun)
 CSV_EVENTS_PATH = (
     r"C:\Users\hulya\OneDrive\Masaüstü\Diyabet-AI\mühendislik projesi\data\ohio\all_patients_events.csv"
 )
 
-# Çıkacak dataset dosyası
 DATA_DIR = os.path.join(ROOT_DIR, "data")
 CSV_OUT_PATH = os.path.join(DATA_DIR, "risk_training_data.csv")
 
 
 def build_risk_dataframe() -> pd.DataFrame:
-    # Yol gerçekten var mı, önce kontrol edelim:
     if not os.path.exists(CSV_EVENTS_PATH):
         raise FileNotFoundError(
             f"Ohio events CSV bulunamadı:\n  {CSV_EVENTS_PATH}\n"
@@ -56,7 +39,7 @@ def build_risk_dataframe() -> pd.DataFrame:
             df_all,
             patient_id=pid,
             freq="5min",
-            horizon_steps=6,  # 6*5 dk = 30 dk sonrası
+            horizon_steps=6,  # 6*5 = 30dk sonrası (verisetinde glikoz 5 dk aralıklarla ölçüldüğü için)
         )
 
         # Glikoz ve risk sınıfı olmayan satırları at
@@ -108,7 +91,6 @@ def build_risk_dataframe() -> pd.DataFrame:
 
 
 def main():
-    # data klasörü yoksa oluştur
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR, exist_ok=True)
 

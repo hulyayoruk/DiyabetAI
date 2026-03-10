@@ -110,6 +110,24 @@
             olarak hesaplanır; <strong>klinik tanı yerine geçmez.</strong>
           </p>
         </div>
+       <div class="card form-card measurement-inline-card">
+        <h3>🩸 Ölçüm Girişi</h3>
+        <form method="POST" action="/olcum_ekle">
+          <label>Kan Şekeri (mg/dL)</label>
+          <input type="number" name="glikoz" required>
+
+          <label>Ölçüm Tarihi &amp; Saati</label>
+          <input type="datetime-local" name="olcum_zamani">
+
+          <label>İlaç</label>
+          <input type="text" name="ilac" placeholder="Kullanılan ilaç">
+
+          <label>Not</label>
+          <textarea name="notlar" placeholder="Ek bilgi"></textarea>
+
+          <button type="submit" class="btn-blue full-width">Kaydet</button>
+        </form>
+      </div>
       </div>
 
       <!-- Sağ: AI Önerileri -->
@@ -159,24 +177,28 @@
 
     <!-- 2. SATIR: 4 FORM KARTI (tam genişlik) -->
     <section class="form-row">
-      <div class="card form-card">
-        <h3>🩸 Ölçüm Girişi</h3>
-        <form method="POST" action="/olcum_ekle">
-          <label>Kan Şekeri (mg/dL)</label>
-          <input type="number" name="glikoz" required>
+      
 
-          <label>Ölçüm Tarihi &amp; Saati</label>
-          <input type="datetime-local" name="olcum_zamani">
+       <div class="card form-card">
+        <h3>💉 İnsülin Girişi</h3>
+        <form method="POST" action="/insulin_ekle">
+        <label>İnsülin Türü</label>
+        <select name="tip" required>
+        <option value="">Seçiniz</option>
+        <option value="bolus">Hızlı Etkili (Bolus)</option>
+        <option value="basal">Uzun Etkili (Basal)</option>
+        </select>
 
-          <label>İlaç</label>
-          <input type="text" name="ilac" placeholder="Kullanılan ilaç">
+        <label>Doz (Ünite)</label>
+        <input type="number" name="doz" step="0.1" min="0" required>
 
-          <label>Not</label>
-          <textarea name="notlar" placeholder="Ek bilgi"></textarea>
+        <label>Uygulama Zamanı</label>
+        <input type="datetime-local" name="zaman">
 
-          <button type="submit" class="btn-blue full-width">Kaydet</button>
+        <button type="submit" class="btn-blue full-width">Kaydet</button>
         </form>
       </div>
+
 
       <div class="card form-card">
         <h3>🍽️ Öğün Bilgisi</h3>
@@ -247,6 +269,7 @@
           <button type="submit" class="btn-blue full-width">Kaydet</button>
         </form>
       </div>
+      
     </section>
 
     <!-- 3. SATIR: ÖLÇÜM RAPORU (sol geniş) + DÖNEMSEL GLİKOZ (sağ) -->

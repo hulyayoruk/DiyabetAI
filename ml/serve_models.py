@@ -29,7 +29,7 @@ if not os.path.exists(scaler_path):
 lstm_model = tf.keras.models.load_model(lstm_path, compile=False)
 lstm_scaler = joblib.load(scaler_path)
 
-# Eğitim sırasında gördüğün MAE (istersen dosyadan da okuyabilirsin)
+#ortalama mutlak hata!
 lstm_mae = 4.97
 
 # --- XGBoost ---
